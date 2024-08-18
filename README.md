@@ -67,7 +67,7 @@ The project is organized into several key components:
 ## **How to Reproduce**
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/your-repo/nyc-payroll-integration.git
+   git clone https://github.com/OluwasinaRofiyat/NYC_Payroll
    ```
 2. **Set Up AWS Environment**:
    - Upload the concatenated `nyc_payroll_new.csv` to an S3 bucket.
