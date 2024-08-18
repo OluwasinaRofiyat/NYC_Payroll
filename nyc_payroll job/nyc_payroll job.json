@@ -1,0 +1,41 @@
+{
+  "name" : "nyc_payroll job",
+  "jobMode" : "VISUAL",
+  "description" : "",
+  "role" : "arn:aws:iam::528757782983:role/nyc-glue-role",
+  "executionProperty" : {
+    "maxConcurrentRuns" : 1
+  },
+  "command" : {
+    "name" : "glueetl",
+    "scriptLocation" : "s3://aws-glue-assets-528757782983-us-east-1/scripts/nyc_payroll job.py",
+    "pythonVersion" : "3"
+  },
+  "defaultArguments" : {
+    "--enable-metrics" : "true",
+    "--enable-spark-ui" : "true",
+    "--spark-event-logs-path" : "s3://aws-glue-assets-528757782983-us-east-1/sparkHistoryLogs/",
+    "--enable-job-insights" : "false",
+    "--enable-observability-metrics" : "true",
+    "--enable-glue-datacatalog" : "true",
+    "--enable-continuous-cloudwatch-log" : "true",
+    "--job-bookmark-option" : "job-bookmark-disable",
+    "--job-language" : "python",
+    "--TempDir" : "s3://aws-glue-assets-528757782983-us-east-1/temporary/"
+  },
+  "maxRetries" : 0,
+  "allocatedCapacity" : 10,
+  "timeout" : 2880,
+  "maxCapacity" : 10.0,
+  "glueVersion" : "4.0",
+  "numberOfWorkers" : 10,
+  "workerType" : "G.1X",
+  "executionClass" : "STANDARD",
+  "codeGenConfigurationNodes" : "{\"node-1723909715277\":{\"SparkSQL\":{\"Inputs\":[\"node-1723889631771\"],\"Name\":\"populate fact_payroll\",\"OutputSchemas\":[{\"Columns\":[]}],\"SqlAliases\":[{\"Alias\":\"myDataSource\",\"From\":\"node-1723889631771\"}],\"SqlQuery\":\"INSERT INTO nyc_db1.FactPayroll (PayrollNumber, FiscalYear, AgencyID, TitleCode, EmployeeID, BaseSalary, PayBasis, RegularHours, RegularGrossPaid, OTHours, TotalOTPaid, TotalOtherPay)\\nSELECT\\n    PayrollNumber,\\n    FiscalYear,\\n    AgencyID,\\n    TitleCode,\\n    EmployeeID,\\n    BaseSalary,\\n    PayBasis,\\n    RegularHours,\\n    RegularGrossPaid,\\n    OTHours,\\n    TotalOTPaid,\\n    TotalOtherPay\\nFROM nyc_db1.nyc_payroll_new;\\n\\n\"}},\"node-1723891185343\":{\"SparkSQL\":{\"Inputs\":[\"node-1723889631771\"],\"Name\":\"dimagency\",\"OutputSchemas\":[{\"Columns\":[]}],\"SqlAliases\":[{\"Alias\":\"myDataSource\",\"From\":\"node-1723889631771\"}],\"SqlQuery\":\"CREATE TABLE IF NOT EXISTS nyc_db1.DimAgency (\\r\\n    AgencyID BIGINT,\\r\\n    AgencyName STRING\\r\\n)\\r\\n\\r\\nLOCATION 's3://nyc-bucket1/production/DimAgency/';\\r\\n\"}},\"node-1723910088099\":{\"S3GlueParquetTarget\":{\"AutoDataQuality\":{\"IsEnabled\":false},\"Compression\":\"snappy\",\"Inputs\":[\"node-1723891185343\"],\"Name\":\"PRDagency\",\"PartitionKeys\":[],\"Path\":\"s3://nyc-bucket2/PRD/\",\"SchemaChangePolicy\":{\"EnableUpdateCatalog\":false}}},\"node-1723910418341\":{\"S3GlueParquetTarget\":{\"AutoDataQuality\":{\"IsEnabled\":false},\"Compression\":\"snappy\",\"Inputs\":[\"node-1723907715289\"],\"Name\":\"dim_tittle\",\"PartitionKeys\":[],\"Path\":\"s3://nyc-bucket2/PRD/\",\"SchemaChangePolicy\":{\"EnableUpdateCatalog\":false}}},\"node-1723909972410\":{\"SparkSQL\":{\"Inputs\":[\"node-1723889631771\"],\"Name\":\"populate fact_overtime_spent\",\"OutputSchemas\":[{\"Columns\":[]}],\"SqlAliases\":[{\"Alias\":\"myDataSource\",\"From\":\"node-1723889631771\"}],\"SqlQuery\":\"INSERT INTO nyc_db1.OvertimeSpentByAgency (AgencyID, AgencyName, FiscalYear, TotalOTHours, TotalOTPaid)\\nSELECT \\n    AgencyID,\\n    AgencyName,\\n    FiscalYear,\\n    SUM(OTHours) AS TotalOTHours,\\n    SUM(TotalOTPaid) AS TotalOTPaid\\nFROM nyc_db1.nyc_payroll_new\\nGROUP BY \\n    AgencyID, AgencyName, FiscalYear;\\n\\n\"}},\"node-1723910771630\":{\"S3GlueParquetTarget\":{\"AutoDataQuality\":{\"IsEnabled\":false},\"Compression\":\"snappy\",\"Inputs\":[\"node-1723909843857\"],\"Name\":\"fact_overtime_spentby_agency\",\"PartitionKeys\":[],\"Path\":\"s3://nyc-bucket2/PRD/\",\"SchemaChangePolicy\":{\"EnableUpdateCatalog\":false}}},\"node-1723910693372\":{\"S3GlueParquetTarget\":{\"AutoDataQuality\":{\"IsEnabled\":false},\"Compression\":\"snappy\",\"Inputs\":[\"node-1723909389035\"],\"Name\":\"fact_payroll\",\"PartitionKeys\":[],\"Path\":\"s3://nyc-bucket2/PRD/\",\"SchemaChangePolicy\":{\"EnableUpdateCatalog\":false}}},\"node-1723899057393\":{\"SparkSQL\":{\"Inputs\":[\"node-1723889631771\"],\"Name\":\"populate dimagency\",\"OutputSchemas\":[{\"Columns\":[]}],\"SqlAliases\":[{\"Alias\":\"myDataSource\",\"From\":\"node-1723889631771\"}],\"SqlQuery\":\"INSERT INTO nyc_db1.dimagency (AgencyID, AgencyName)\\r\\nSELECT DISTINCT\\r\\n    agencyid,\\r\\n    agencyname\\r\\nFROM nyc_db1.nyc_payroll_new\\r\\nWHERE agencyid NOT IN (SELECT AgencyID FROM nyc_db1.dimagency)\\r\\n\\r\\n\"}},\"node-1723909843857\":{\"SparkSQL\":{\"Inputs\":[\"node-1723889631771\"],\"Name\":\"fact overtime_spentby_agency\",\"OutputSchemas\":[{\"Columns\":[]}],\"SqlAliases\":[{\"Alias\":\"myDataSource\",\"From\":\"node-1723889631771\"}],\"SqlQuery\":\"CREATE TABLE IF NOT EXISTS nyc_db1.OvertimeSpentByAgency (\\n    AgencyID BIGINT,\\n    AgencyName STRING,\\n    FiscalYear BIGINT,\\n    TotalOTHours DOUBLE,\\n    TotalOTPaid DOUBLE\\n)\\nSTORED AS PARQUET\\nLOCATION 's3://nyc-bucket1/production/DimTitle/';\\n\"}},\"node-1723889631771\":{\"S3CatalogSource\":{\"AdditionalOptions\":{},\"Database\":\"nyc_db1\",\"Name\":\"datasource\",\"PartitionPredicate\":\"\",\"Table\":\"nyc_payroll_new\"}},\"node-1723909389035\":{\"SparkSQL\":{\"Inputs\":[\"node-1723889631771\"],\"Name\":\"fact_payroll\",\"OutputSchemas\":[{\"Columns\":[]}],\"SqlAliases\":[{\"Alias\":\"myDataSource\",\"From\":\"node-1723889631771\"}],\"SqlQuery\":\"CREATE TABLE IF NOT EXISTS nyc_db1.FactPayroll (\\n    PayrollNumber BIGINT,\\n    FiscalYear BIGINT,\\n    AgencyID BIGINT,\\n    TitleCode BIGINT,\\n    EmployeeID BIGINT,\\n    BaseSalary DOUBLE,\\n    PayBasis STRING,\\n    RegularHours DOUBLE,\\n    RegularGrossPaid DOUBLE,\\n    OTHours DOUBLE,\\n    TotalOTPaid DOUBLE,\\n    TotalOtherPay DOUBLE\\n)\\nSTORED AS PARQUET\\nLOCATION 's3://nyc-bucket1/production/DimTitle/';\\n\\n\\n\"}},\"node-1723908061091\":{\"SparkSQL\":{\"Inputs\":[\"node-1723889631771\"],\"Name\":\"populate dimtittle\",\"OutputSchemas\":[{\"Columns\":[]}],\"SqlAliases\":[{\"Alias\":\"myDataSource\",\"From\":\"node-1723889631771\"}],\"SqlQuery\":\"INSERT INTO nyc_db1.DimTitle (TitleCode, TitleDescription)\\nSELECT DISTINCT\\n    TitleCode,\\n    TitleDescription\\nFROM nyc_db1.nyc_payroll_new\\nWHERE TitleCode NOT IN (SELECT TitleCode FROM nyc_db1.DimTitle);\\n\\n\"}},\"node-1723910607183\":{\"S3GlueParquetTarget\":{\"AutoDataQuality\":{\"IsEnabled\":false},\"Compression\":\"snappy\",\"Inputs\":[\"node-1723908233031\"],\"Name\":\"dim_employee\",\"PartitionKeys\":[],\"Path\":\"s3://nyc-bucket2/PRD/\",\"SchemaChangePolicy\":{\"EnableUpdateCatalog\":false}}},\"node-1723907715289\":{\"SparkSQL\":{\"Inputs\":[\"node-1723889631771\"],\"Name\":\"dim_tittle\",\"OutputSchemas\":[{\"Columns\":[]}],\"SqlAliases\":[{\"Alias\":\"myDataSource\",\"From\":\"node-1723889631771\"}],\"SqlQuery\":\"CREATE TABLE IF NOT EXISTS nyc_db1.DimTitle (\\n    TitleCode BIGINT,\\n    TitleDescription STRING\\n)\\nSTORED AS PARQUET\\nLOCATION 's3://nyc-bucket1/production/DimTitle/';\\n\\n\"}},\"node-1723908233031\":{\"SparkSQL\":{\"Inputs\":[\"node-1723889631771\"],\"Name\":\"dimemployee\",\"OutputSchemas\":[{\"Columns\":[]}],\"SqlAliases\":[{\"Alias\":\"myDataSource\",\"From\":\"node-1723889631771\"}],\"SqlQuery\":\"CREATE TABLE IF NOT EXISTS nyc_db1.DimEmployee (\\n    EmployeeID BIGINT,\\n    LastName STRING,\\n    FirstName STRING,\\n    AgencyStartDate DATE,\\n    WorkLocationBorough STRING,\\n    LeaveStatusAsOfJune30 STRING\\n\\n)\\nSTORED AS PARQUET\\nLOCATION 's3://nyc-bucket1/production/Dimemployee/';\\n\"}},\"node-1723908855109\":{\"SparkSQL\":{\"Inputs\":[\"node-1723889631771\"],\"Name\":\"populate_dimemployee\",\"OutputSchemas\":[{\"Columns\":[]}],\"SqlAliases\":[{\"Alias\":\"myDataSource\",\"From\":\"node-1723889631771\"}],\"SqlQuery\":\"INSERT INTO nyc_db1.DimEmployee (EmployeeID, LastName, FirstName, AgencyStartDate, WorkLocationBorough, LeaveStatusAsOfJune30)\\nSELECT DISTINCT\\n    EmployeeID,\\n    LastName,\\n    FirstName,\\n    AgencyStartDate,\\n    WorkLocationBorough,\\n    LeaveStatusAsOfJune30\\nFROM nyc_db1.nyc_payroll_new\\nWHERE EmployeeID NOT IN (SELECT EmployeeID FROM nyc_db1.DimEmployee);\\n\\n\"}}}",
+  "sourceControlDetails" : {
+    "provider" : "GITHUB",
+    "repository" : "NYC_Payroll",
+    "branch" : "main",
+    "folder" : "nyc_payroll job"
+  }
+}
